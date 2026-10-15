@@ -16,13 +16,22 @@
 
     const appShell = document.querySelector(".app-shell");
     const deckList = document.querySelector("#deck-list");
+    const deckNav = document.querySelector('nav[aria-label="Flashcard decks"]');
+    const deckListEmpty = document.querySelector("#deck-list-empty");
     const addDeckButton = document.querySelector(".icon-button");
+    const emptyCreateDeckButton = document.querySelector("#empty-create-deck");
     const studyModeToggle = document.querySelector("#study-mode-toggle");
     const studySection = document.querySelector(".study-section");
     const studyShortcuts = document.querySelector("#study-shortcuts");
     const cardSearchInput = document.querySelector("#card-search");
     const searchCount = document.querySelector("#search-count");
+    const studySearch = document.querySelector("#study-search");
     const card = document.querySelector(".card");
+    const studyEmptyState = document.querySelector("#study-empty-state");
+    const emptyStateTitle = document.querySelector("#empty-state-title");
+    const emptyStateDescription = document.querySelector("#empty-state-description");
+    const emptyStateAction = document.querySelector("#empty-state-action");
+    const cardControls = document.querySelector(".card-controls");
     const frontFace = document.querySelector(".card-front");
     const backFace = document.querySelector(".card-back");
     const modal = document.querySelector("#deck-modal");
@@ -70,6 +79,8 @@
 
     function renderDecks() {
         deckList.replaceChildren();
+        deckNav.hidden = decks.length === 0;
+        deckListEmpty.hidden = decks.length > 0;
 
         decks.forEach((deck) => {
             const item = document.createElement("li");
@@ -109,12 +120,23 @@
 
     function renderCard() {
         const deck = activeDeck();
+        if (!deck) {
+            window.clearTimeout(searchTimer);
+            searchQuery = "";
+            cardSearchInput.value = "";
+        }
         const visibleCards = matchingCards(deck);
         const flashcard = currentCard();
         const flipButton = frontFace.querySelector('[data-action="flip"]');
         const backFlipButton = backFace.querySelector('[data-action="flip"]');
+        flipButton.setAttribute("aria-keyshortcuts", "F");
+        backFlipButton.setAttribute("aria-keyshortcuts", "F");
 
         card.classList.remove("is-flipped");
+        card.hidden = !flashcard;
+        studyEmptyState.hidden = Boolean(flashcard);
+        cardControls.hidden = !flashcard;
+        studySearch.hidden = !deck;
         frontFace.setAttribute("aria-hidden", String(!flashcard));
         frontFace.inert = !flashcard;
         backFace.setAttribute("aria-hidden", "true");
@@ -129,10 +151,25 @@
             backFlipButton.disabled = false;
         } else {
             document.querySelector("#deck-title").textContent = deck?.name ?? "No decks yet";
-            document.querySelector(".progress").textContent = deck ? "No cards yet" : "Create a deck to get started";
-            document.querySelector(".card-prompt").textContent = deck
-                ? (searchQuery.trim() ? "No cards match your search." : "Add a card to start studying this deck.")
-                : "Your flashcards will appear here.";
+            document.querySelector(".progress").textContent = deck
+                ? (searchQuery.trim() ? "No matches" : "No cards yet")
+                : "Create a deck to get started";
+            if (!deck) {
+                emptyStateTitle.textContent = "Create your first deck";
+                emptyStateDescription.textContent = "Decks keep related flashcards together. Add one to get started.";
+                emptyStateAction.textContent = "Create a deck";
+                emptyStateAction.dataset.action = "create-deck";
+            } else if (searchQuery.trim()) {
+                emptyStateTitle.textContent = "No matching cards";
+                emptyStateDescription.textContent = "Try another search, or clear the search to see every card in this deck.";
+                emptyStateAction.textContent = "Clear search";
+                emptyStateAction.dataset.action = "clear-search";
+            } else {
+                emptyStateTitle.textContent = "This deck is empty";
+                emptyStateDescription.textContent = "Add a question and answer to start studying this deck.";
+                emptyStateAction.textContent = "Create a card";
+                emptyStateAction.dataset.action = "create-card";
+            }
             document.querySelector(".card-answer").textContent = "";
             flipButton.disabled = true;
             backFlipButton.disabled = true;
@@ -142,19 +179,21 @@
             ? `${visibleCards.length} match${visibleCards.length === 1 ? "" : "es"} (${deck?.cards.length ?? 0} ${deck?.cards.length === 1 ? "card" : "cards"})`
             : `${visibleCards.length} card${visibleCards.length === 1 ? "" : "s"}`;
 
-        studySection.querySelector('[data-action="previous-card"]').disabled = !deck || currentCardIndex <= 0;
-        studySection.querySelector('[data-action="next-card"]').disabled = !deck || currentCardIndex >= visibleCards.length - 1;
+        studySection.querySelector('[data-action="previous-card"]').disabled = !deck || !flashcard || currentCardIndex <= 0;
+        studySection.querySelector('[data-action="next-card"]').disabled = !deck || !flashcard || currentCardIndex >= visibleCards.length - 1;
         studySection.querySelector('[data-action="edit-card"]').disabled = !flashcard;
         studySection.querySelector('[data-action="delete-card"]').disabled = !flashcard;
+        studySection.querySelector('[data-action="create-card"]').disabled = !deck;
     }
 
     function render() {
         renderDecks();
         renderCard();
         studyModeToggle.textContent = studyModeActive ? "Exit study mode" : "Enter study mode";
-        studyModeToggle.setAttribute("aria-pressed", String(studyModeActive));
         studyModeToggle.disabled = decks.length === 0;
         studyShortcuts.hidden = !studyModeActive;
+        if (studyModeActive) studySection.setAttribute("aria-describedby", "study-shortcuts");
+        else studySection.removeAttribute("aria-describedby");
     }
 
     function exitStudyMode() {
@@ -164,6 +203,7 @@
         }
         studyModeActive = false;
         render();
+        studyModeToggle.focus();
     }
 
     function enterStudyMode(deckId) {
@@ -279,6 +319,7 @@
     }
 
     addDeckButton.addEventListener("click", () => openEditor("create-deck", null, addDeckButton));
+    emptyCreateDeckButton.addEventListener("click", () => openEditor("create-deck", null, emptyCreateDeckButton));
     cardSearchInput.addEventListener("input", () => {
         window.clearTimeout(searchTimer);
         searchTimer = window.setTimeout(() => {
@@ -296,6 +337,8 @@
     form.addEventListener("submit", (event) => {
         event.preventDefault();
         const isCardEditor = editorMode === "create-card" || editorMode === "edit-card";
+        const createdCard = editorMode === "create-card";
+        const editedCard = editorMode === "edit-card";
         const renamedDeckId = editorMode === "rename-deck" ? editingDeckId : null;
         const createdDeckId = editorMode === "create-deck" ? nextDeckId : null;
 
@@ -337,7 +380,16 @@
         closeEditor();
         render();
         persistState();
-        if (createdDeckId !== null) enterStudyMode(createdDeckId);
+        if (createdDeckId !== null) {
+            enterStudyMode(createdDeckId);
+            deckList.querySelector(`[data-deck-select="${createdDeckId}"]`)?.focus();
+        } else if (createdCard) {
+            frontFace.querySelector('[data-action="flip"]').focus();
+        } else if (editedCard) {
+            (currentCard()
+                ? studySection.querySelector('[data-action="edit-card"]')
+                : emptyStateAction).focus();
+        }
         if (renamedDeckId !== null) {
             deckList.querySelector(`[data-deck-rename="${renamedDeckId}"]`)?.focus();
         }
@@ -345,12 +397,23 @@
 
     // Card controls are handled here so regenerated or future card controls need no listeners of their own.
     studySection.addEventListener("click", (event) => {
-        const control = event.target.closest("[data-action]");
+        const control = event.target instanceof Element ? event.target.closest("[data-action]") : null;
         if (!control || !studySection.contains(control) || control.disabled) return;
 
         const deck = activeDeck();
         const flashcard = currentCard();
         switch (control.dataset.action) {
+            case "create-deck":
+                openEditor("create-deck", null, control);
+                break;
+            case "clear-search":
+                window.clearTimeout(searchTimer);
+                searchQuery = "";
+                cardSearchInput.value = "";
+                currentCardIndex = 0;
+                renderCard();
+                cardSearchInput.focus();
+                break;
             case "flip": {
                 const flipped = card.classList.toggle("is-flipped");
                 frontFace.setAttribute("aria-hidden", String(flipped));
@@ -372,7 +435,8 @@
                     currentCardIndex = Math.max(0, Math.min(currentCardIndex, matchingCards(deck).length - 1));
                     render();
                     persistState();
-                    studySection.querySelector('[data-action="create-card"]').focus();
+                    if (currentCard()) studySection.querySelector('[data-action="create-card"]').focus();
+                    else emptyStateAction.focus();
                 }
                 break;
             case "previous-card":

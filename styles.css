@@ -4,11 +4,13 @@
     --color-surface: #ffffff;
     --color-surface-soft: #f8f9fc;
     --color-text: #202638;
-    --color-muted: #737d91;
+    --color-muted: #626d80;
     --color-border: #e6e9f0;
     --color-accent: #5b63d9;
     --color-accent-hover: #494fc2;
     --color-selected: #f0f1ff;
+    --color-focus: #5962db;
+    --color-danger: #b42332;
     --shadow-card: 0 16px 40px rgb(33 42 74 / 8%);
     --radius-card: 20px;
     --radius-control: 12px;
@@ -41,9 +43,28 @@ a {
 }
 
 button:focus-visible,
-a:focus-visible {
-    outline: 3px solid rgb(91 99 217 / 35%);
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid var(--color-focus);
     outline-offset: 3px;
+}
+
+.skip-link {
+    position: fixed;
+    z-index: 20;
+    top: 8px;
+    left: 8px;
+    padding: 10px 14px;
+    transform: translateY(-150%);
+    border-radius: 8px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-card);
+}
+
+.skip-link:focus-visible {
+    transform: translateY(0);
 }
 
 .app-shell {
@@ -125,8 +146,8 @@ a:focus-visible {
 }
 
 .icon-button {
-    width: 30px;
-    height: 30px;
+    width: 40px;
+    height: 40px;
     border: 1px solid var(--color-border);
     border-radius: 9px;
     background: var(--color-surface);
@@ -186,7 +207,8 @@ a:focus-visible {
 }
 
 .deck-action {
-    padding: 3px 5px;
+    min-height: 36px;
+    padding: 6px 8px;
     border: 0;
     background: transparent;
     color: var(--color-muted);
@@ -200,7 +222,7 @@ a:focus-visible {
 }
 
 .deck-action-danger:hover {
-    color: #d34c5a;
+    color: var(--color-danger);
 }
 
 .main-content {
@@ -240,6 +262,14 @@ a:focus-visible {
     align-items: center;
     gap: 10px;
     margin-bottom: var(--space-2);
+}
+
+.study-search[hidden],
+.flashcard.card[hidden],
+.card-controls[hidden],
+.empty-state[hidden],
+.sidebar-empty[hidden] {
+    display: none;
 }
 
 .study-search label {
@@ -364,6 +394,7 @@ a:focus-visible {
 }
 
 .text-button {
+    min-height: 44px;
     margin-top: var(--space-3);
     padding: 8px;
     border: 0;
@@ -424,6 +455,60 @@ a:focus-visible {
     margin: var(--space-2) 0 0;
     color: var(--color-muted);
     font-size: 0.78rem;
+    text-align: center;
+}
+
+.empty-state {
+    min-height: 320px;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 10px;
+    padding: 2rem;
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-soft);
+    text-align: center;
+}
+
+.empty-state h2,
+.empty-state p,
+.sidebar-empty p {
+    margin: 0;
+}
+
+.empty-state h2 {
+    font-size: 1.15rem;
+    letter-spacing: -0.025em;
+}
+
+.empty-state p,
+.sidebar-empty p {
+    max-width: 34ch;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.empty-state-action {
+    margin-top: 6px;
+}
+
+.empty-icon {
+    width: 48px;
+    height: 48px;
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+}
+
+.sidebar-empty {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 1.25rem 0.5rem;
     text-align: center;
 }
 
@@ -580,6 +665,11 @@ a:focus-visible {
         min-height: 280px;
     }
 
+    .empty-state {
+        min-height: 280px;
+        padding: 1.5rem 1rem;
+    }
+
     .card-controls {
         flex-wrap: wrap;
         justify-content: center;
@@ -623,6 +713,8 @@ a:focus-visible {
         --color-accent: #a4aaff;
         --color-accent-hover: #c0c4ff;
         --color-selected: #2c304b;
+        --color-focus: #bdc1ff;
+        --color-danger: #ff8792;
         --shadow-card: 0 16px 40px rgb(0 0 0 / 22%);
     }
 
